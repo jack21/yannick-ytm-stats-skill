@@ -3,21 +3,23 @@
 Yannick YTM 全站庫存掃描器（純 Python）
 
 流程：
-1. 讀 stations.tsv（內建 86 站 master data）
-2. 用 concurrent.futures.ThreadPoolExecutor 並行 POST 官方 API
+1. GET 官方頁面 service2，從內嵌的 `Machines` JSON 取得最新站點清單（即時 master data）
+   - 取得失敗時自動退回讀內建 stations.tsv 快照
+2. 用 concurrent.futures.ThreadPoolExecutor 並行 POST 官方 API 抓各站庫存
 3. 聚合並把 Markdown 報告印到 stdout
 
 依賴：
-    Python ≥ 3.8 — 僅使用標準函式庫 (urllib / json / csv / concurrent.futures)。
+    Python ≥ 3.8 — 僅使用標準函式庫 (urllib / json / csv / re / concurrent.futures)。
     不需 pip install。不需 curl 或其他工具。
 
 用法：
     python3 scan.py
 
 可選環境變數：
-    CONCURRENCY            同時併發站數，預設 6
-    YANNICK_OFFLINE_CACHE  指向 mock JSON 目錄；設定後跳過 HTTP，直接從目錄讀
-                           (本機沒網路時的測試 / 開發用)
+    CONCURRENCY              同時併發站數，預設 6
+    YANNICK_USE_LOCAL_STATIONS  =1 時跳過動態取得，直接讀 stations.tsv
+    YANNICK_OFFLINE_CACHE    指向 mock JSON 目錄；設定後跳過 HTTP，直接從目錄讀
+                             (本機沒網路時的測試 / 開發用；同時也會跳過動態站點取得)
 
 免責聲明：
     本工具僅供個人便利查詢使用，所有資料產權皆屬原網站所有。
@@ -27,6 +29,7 @@ Yannick YTM 全站庫存掃描器（純 Python）
 import csv
 import json
 import os
+import re
 import sys
 import time
 import urllib.error
@@ -37,12 +40,15 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timedelta, timezone
 
 API_URL = "https://www.yannick.com.tw/_zh-cht/ajaxTYTMStock.ashx"
+STATIONS_PAGE_URL = "https://www.yannick.com.tw/ytm/service2"
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 STATIONS_TSV = os.path.join(SCRIPT_DIR, "stations.tsv")
 CONCURRENCY = int(os.environ.get("CONCURRENCY", "6"))
 TIMEOUT_SEC = 15
 RETRY_COUNT = 2
 OFFLINE_CACHE = os.environ.get("YANNICK_OFFLINE_CACHE")
+USE_LOCAL_STATIONS = os.environ.get("YANNICK_USE_LOCAL_STATIONS")
+MACHINES_RE = re.compile(r"(?:var|let|const)\s+Machines\s*=\s*(\[.*?\]);", re.S)
 
 
 def fetch_station(tid: str):
@@ -96,13 +102,85 @@ def fetch_station(tid: str):
     return tid, None, last_err
 
 
+def fetch_stations_live():
+    """GET 官方 service2 頁面，從內嵌 JS 的 `Machines` 變數取出最新站點清單。
+
+    回 list of dict，欄位與 load_stations() 對齊：
+        tid / branch_code / branch_name / line / station_name
+    取得失敗會 raise 例外，由呼叫端決定是否退回 TSV。
+    """
+    req = urllib.request.Request(
+        STATIONS_PAGE_URL,
+        headers={
+            "User-Agent": "yannick-ytm-stats-skill/1.0 (python urllib)",
+            "Accept": "text/html,application/xhtml+xml",
+        },
+    )
+    with urllib.request.urlopen(req, timeout=TIMEOUT_SEC) as resp:
+        html = resp.read().decode("utf-8", errors="replace")
+
+    m = MACHINES_RE.search(html)
+    if not m:
+        raise RuntimeError("頁面結構變更，找不到 Machines 變數")
+    try:
+        machines = json.loads(m.group(1))
+    except json.JSONDecodeError as e:
+        raise RuntimeError(f"Machines JSON 解析失敗：{e}")
+
+    if not isinstance(machines, list) or not machines:
+        raise RuntimeError(f"Machines 不是非空陣列（type={type(machines).__name__}）")
+
+    stations = []
+    for it in machines:
+        tname = (it.get("TName") or "").strip()
+        # TName 格式為「路線-站名」（捷運站）或純店名（門市據點，無 dash）
+        if "-" in tname:
+            line, station_name = tname.split("-", 1)
+        else:
+            line, station_name = "門市", tname
+        stations.append(
+            {
+                "tid": (it.get("TID") or "").strip(),
+                "branch_code": (it.get("RID") or "").strip(),
+                "branch_name": (it.get("RName") or "").strip(),
+                "line": line.strip(),
+                "station_name": station_name.strip(),
+            }
+        )
+    return stations
+
+
 def load_stations(path: str):
+    """從本機 TSV 快照讀站點清單（fallback 用）。"""
     rows = []
     with open(path, encoding="utf-8") as f:
         reader = csv.DictReader(f, delimiter="\t")
         for row in reader:
             rows.append(row)
     return rows
+
+
+def get_stations():
+    """取得站點清單。優先動態抓官方頁面；失敗或被環境變數關閉時退回 TSV。
+
+    回 (stations, source_label) — source_label 用來印給使用者看是哪個來源。
+    """
+    if OFFLINE_CACHE:
+        stations = load_stations(STATIONS_TSV)
+        return stations, f"本機 TSV 快照 (offline mode, {len(stations)} 站)"
+
+    if USE_LOCAL_STATIONS:
+        stations = load_stations(STATIONS_TSV)
+        return stations, f"本機 TSV 快照 (YANNICK_USE_LOCAL_STATIONS=1, {len(stations)} 站)"
+
+    try:
+        stations = fetch_stations_live()
+        return stations, f"官方頁面即時取得 ({len(stations)} 站)"
+    except Exception as e:  # noqa: BLE001
+        print(f"⚠️  動態取得站點失敗：{e}", file=sys.stderr)
+        print("   退回使用內建 stations.tsv 快照…", file=sys.stderr)
+        stations = load_stations(STATIONS_TSV)
+        return stations, f"本機 TSV 快照 (fallback, {len(stations)} 站)"
 
 
 def scan_all(stations):
@@ -123,7 +201,7 @@ def scan_all(stations):
     return results
 
 
-def build_report(stations, fetch_results, elapsed_sec):
+def build_report(stations, fetch_results, elapsed_sec, station_source=""):
     """整理 + 聚合 + 產出 Markdown 字串。"""
     station_results = []
     for s in stations:
@@ -198,6 +276,8 @@ def build_report(stations, fetch_results, elapsed_sec):
     out.append(f"- **掃描時間：** {now_str} (台北時區)")
     out.append(f"- **耗時：** {elapsed_sec} 秒")
     out.append(f"- **資料來源：** {API_URL} (官方 API)")
+    if station_source:
+        out.append(f"- **站點清單：** {station_source}")
     out.append("")
 
     out.append("## 📊 整體摘要")
@@ -272,20 +352,26 @@ def build_report(stations, fetch_results, elapsed_sec):
 
 
 def main():
-    if not os.path.exists(STATIONS_TSV):
-        print(f"ERROR: stations.tsv not found at {STATIONS_TSV}", file=sys.stderr)
+    print("🍰 Yannick YTM 全站庫存掃描", file=sys.stderr)
+    print(f"   開始時間：{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", file=sys.stderr)
+    print("🔎 取得站點清單…", file=sys.stderr)
+
+    try:
+        stations, station_source = get_stations()
+    except FileNotFoundError:
+        print(f"ERROR: 動態取得失敗且 stations.tsv 不存在於 {STATIONS_TSV}", file=sys.stderr)
         return 1
 
-    stations = load_stations(STATIONS_TSV)
+    if not stations:
+        print("ERROR: 取得到的站點清單是空的", file=sys.stderr)
+        return 1
 
-    print("🍰 Yannick YTM 全站庫存掃描", file=sys.stderr)
-    print(f"   來源：{API_URL}", file=sys.stderr)
-    print(f"   站點數：{len(stations)}", file=sys.stderr)
+    print(f"   站點來源：{station_source}", file=sys.stderr)
+    print(f"   API：{API_URL}", file=sys.stderr)
     if OFFLINE_CACHE:
         print(f"   🔌 OFFLINE MODE：{OFFLINE_CACHE}", file=sys.stderr)
     else:
         print(f"   併發：{CONCURRENCY}", file=sys.stderr)
-    print(f"   開始時間：{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", file=sys.stderr)
     print("", file=sys.stderr)
 
     start = time.time()
@@ -295,7 +381,7 @@ def main():
     print(f"✅ 抓取完成，耗時 {elapsed} 秒。聚合中…", file=sys.stderr)
     print("", file=sys.stderr)
 
-    report = build_report(stations, fetch_results, elapsed)
+    report = build_report(stations, fetch_results, elapsed, station_source)
     print(report)
     return 0
 

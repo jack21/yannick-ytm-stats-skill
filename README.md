@@ -43,32 +43,99 @@
 
 ## 安裝
 
-### 方式 A：用預打包的 `.skill` 檔（最快）
+只有兩個東西要記：
 
-1. 從 [Releases](../../releases) 或 [`dist/yannick-ytm-stats-skill.skill`](dist/yannick-ytm-stats-skill.skill) 下載 `.skill` 檔。
-2. 在 Claude Code / Cowork 的 skill 管理介面拖入或匯入該檔。
+- **Claude 系（Claude Code / Desktop / Web）** → 把這個 repo 當作 skill 安裝
+- **其他工具（Codex / Gemini / Cursor / …）** → 引入本 repo 的 `AGENTS.md`
 
-### 方式 B：clone repo
+挑你用的工具，照著做就好。
+
+### Claude Code
 
 ```bash
-git clone https://github.com/<你的帳號>/yannick-ytm-stats-skill.git
+git clone https://github.com/jack21/yannick-ytm-stats-skill.git ~/.claude/skills/yannick-ytm-stats-skill
 ```
 
-然後把整個資料夾放到 Claude Code 讀取 skill 的位置（通常是 `~/.claude/skills/` 或 plugin 目錄；視你的設定）。
+開新對話、提到「亞尼克 YTM」就會自動觸發。
 
-### 方式 C：自行打包成 `.skill`
+### Claude Desktop（Mac / Windows）
 
-如果你修改了內容、想重新打包：
+1. 下載 [`dist/yannick-ytm-stats-skill.skill`](dist/yannick-ytm-stats-skill.skill)
+2. **Settings → Capabilities → Skills → Upload skill** 選那個檔
+
+### Claude.ai / Cowork（網頁）
+
+同 Desktop：下載 `.skill` 後在 **Settings → Capabilities → Skills** 上傳。
+
+### Codex CLI
 
 ```bash
-./scripts/package.sh
-# → 產出 dist/yannick-ytm-stats-skill.skill
+git clone https://github.com/jack21/yannick-ytm-stats-skill.git ~/yannick-ytm-stats-skill
+mkdir -p ~/.codex && echo "@$HOME/yannick-ytm-stats-skill/AGENTS.md" >> ~/.codex/AGENTS.md
+```
+
+### Gemini CLI
+
+```bash
+git clone https://github.com/jack21/yannick-ytm-stats-skill.git ~/yannick-ytm-stats-skill
+mkdir -p ~/.gemini && echo "@$HOME/yannick-ytm-stats-skill/AGENTS.md" >> ~/.gemini/GEMINI.md
+```
+
+### Cursor
+
+clone repo 後，把 `AGENTS.md` 的內容貼到 **Settings → Rules → User Rules**。
+
+### Windsurf
+
+clone repo 後，把 `AGENTS.md` 的內容貼到 **Settings → Cascade → Memories / Rules**。
+
+### Aider
+
+```bash
+git clone https://github.com/jack21/yannick-ytm-stats-skill.git ~/yannick-ytm-stats-skill
+aider --read ~/yannick-ytm-stats-skill/AGENTS.md
+```
+
+或把它寫進 `~/.aider.conf.yml`：
+
+```yaml
+read:
+  - ~/yannick-ytm-stats-skill/AGENTS.md
+```
+
+### Cline / Roo Code（VS Code）
+
+```bash
+git clone https://github.com/jack21/yannick-ytm-stats-skill.git ~/yannick-ytm-stats-skill
+ln -sf ~/yannick-ytm-stats-skill/AGENTS.md ~/.clinerules
+```
+
+### 其他工具 / 純命令列
+
+任何能跑 shell 的 AI 工具：clone repo，把 `AGENTS.md` 內容貼進 system prompt 即可。
+
+不用任何 AI 工具，自己跑也行：
+
+```bash
+git clone https://github.com/jack21/yannick-ytm-stats-skill.git
+python3 yannick-ytm-stats-skill/scripts/scan.py
+```
+
+---
+
+<details>
+<summary>自行打包成 <code>.skill</code>（給開發者）</summary>
+
+修改內容後想重新打包：
+
+```bash
+./scripts/package.sh   # 產出 dist/yannick-ytm-stats-skill.skill
 ```
 
 該 script 內就是一行 `zip`，刻意排除 `dist/`、`examples/`、`.github/`、`tests/`、`README.md` 等非 runtime 檔案。
-也可用 [skill-creator](https://github.com/anthropics) 提供的 `package_skill.py`。
 
 Release：推 `v*` tag 後，`.github/workflows/release.yml` 會自動打包並上傳 `.skill` 到 GitHub Release。
+</details>
 
 ## 使用
 
@@ -94,7 +161,8 @@ python3 scripts/scan.py
 | 變數 | 預設 | 說明 |
 |------|------|------|
 | `CONCURRENCY` | `6` | 同時併發抓取的站點數。網路差或想保守可設 3–4；想快可設 10。 |
-| `YANNICK_OFFLINE_CACHE` | (空) | 指向 mock JSON 目錄。設定後跳過 HTTP，從目錄讀。給開發/測試用。 |
+| `YANNICK_USE_LOCAL_STATIONS` | (空) | 設 `1` 時跳過動態取站點，直接讀 `scripts/stations.tsv` 快照。 |
+| `YANNICK_OFFLINE_CACHE` | (空) | 指向 mock JSON 目錄。設定後跳過所有 HTTP，從目錄讀。給開發/測試用。 |
 
 ```bash
 CONCURRENCY=10 python3 scripts/scan.py    # 較快
@@ -124,8 +192,8 @@ Body: TID=<站點 ID>
 
 `scan.py` 做的事很單純：
 
-1. 讀內建的 `scripts/stations.tsv`（86 站 master data，含 TID / 據點分類 / 路線 / 站名）
-2. `concurrent.futures.ThreadPoolExecutor` 並行 POST 上述 endpoint
+1. **動態取得最新站點清單**：GET 官方 `service2` 頁面，從內嵌 JS 的 `Machines` 變數抽出 86 站 JSON（即時抓，不依賴本機快照）。動態取得失敗時自動退回讀 `scripts/stations.tsv`。
+2. `concurrent.futures.ThreadPoolExecutor` 並行 POST 上述 stock endpoint
 3. 收集每站的 `StockList`、依商品代碼聚合
 4. 輸出整理好的 Markdown 表格
 

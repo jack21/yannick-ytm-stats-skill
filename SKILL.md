@@ -24,8 +24,9 @@ description: 抓取亞尼克 YTM 蛋糕販賣機全部 86 個據點的即時庫�
 
 直接執行 `scripts/scan.py`，它會：
 
-1. 讀 `scripts/stations.tsv`（內建 86 站 master data）
-2. 用 `concurrent.futures.ThreadPoolExecutor` 並行 POST 官方 API
+1. **GET 官方頁面 `service2`，從內嵌 JS 的 `Machines` 變數取得最新站點清單**（即時 master data，不靠本機快照）
+   - 取得失敗會自動退回讀 `scripts/stations.tsv` 快照，不會整個失敗
+2. 用 `concurrent.futures.ThreadPoolExecutor` 並行 POST 官方 stock API
 3. 聚合並把 Markdown 報告印到 **stdout**
 
 ```bash
@@ -58,7 +59,8 @@ python3 scripts/scan.py
 | 變數 | 預設 | 說明 |
 |------|------|------|
 | `CONCURRENCY` | 6 | 同時併發抓取的站點數。網路差或想更保守可設 3–4；想快可設 10。 |
-| `YANNICK_OFFLINE_CACHE` | (空) | 指向 mock JSON 目錄；設定後跳過 HTTP，從目錄讀。給開發/測試用，使用者一般不需要設。 |
+| `YANNICK_USE_LOCAL_STATIONS` | (空) | 設 `1` 時跳過動態取得，直接讀 `scripts/stations.tsv` 快照。網路差時可加速。 |
+| `YANNICK_OFFLINE_CACHE` | (空) | 指向 mock JSON 目錄；設定後跳過所有 HTTP（含站點清單），從目錄讀。給開發/測試用，使用者一般不需要設。 |
 
 ```bash
 CONCURRENCY=10 python3 scripts/scan.py   # 較快
@@ -69,7 +71,7 @@ CONCURRENCY=3  python3 scripts/scan.py   # 較保守
 
 1. **官方 API 強制 POST + form body**。直接 `GET ?TID=xxx` 會回 `Status.code=05` 「TID 欄位是必要項」。腳本已正確處理。
 2. **API 無 CORS header**。本 skill 是在本機直接打 API（CLI 環境沒有 CORS 概念），所以**不需任何代理服務**。這跟瀏覽器版前端不同。
-3. **站點清單會偶爾更新**（如官方新增/停用某站）。`stations.tsv` 是 2026-05 抓的快照。若使用者反映某站查不到或多了新站，請從官方頁面 `service2` 第二個 `<select>` 撈最新清單更新 TSV。
+3. **站點清單預設會即時從官方頁面取得**，不再依賴 `stations.tsv`。TSV 只作為動態取得失敗（網路問題、官方頁面結構變更）時的 fallback 快照。若官方頁面 HTML 結構大改導致 `Machines` 變數正則對不上，會自動退回 TSV，並在 stderr 印出警告。
 4. **失敗站點不會中斷整個流程**。`scan.py` 內每站 POST 超時 15 秒、自動重試 2 次（指數退避），仍失敗就記錄在報告底部的「查詢失敗站點」段落，不影響其他站。
 
 ## 不要做的事

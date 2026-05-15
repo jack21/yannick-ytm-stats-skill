@@ -97,7 +97,29 @@ print(json.dumps(data, ensure_ascii=False, indent=2))
 ## 取得最新站點清單
 
 官方頁面 `https://www.yannick.com.tw/ytm/service2` 是 ASP.NET WebForms + Vue.js render。
-站點資料嵌在第一個 `<form>` 的 `__VIEWSTATE` 內，但更實用的做法：
+**本 skill 的 `scan.py` 已內建動態取得邏輯**：每次執行都會 GET 該頁面，用正則抓出內嵌的 `Machines = [...]` JSON 變數，解析成 86 站清單（含 TID / RName / TName / TAddr / PHOTO_URL）。
+
+`Machines` 是一個 inline JS 陣列，每筆結構：
+
+```json
+{
+  "TID": "F638C63801AA82",
+  "TName": "環狀線-新北產業園區站",
+  "TAddr": "新北市新莊區五工路35號",
+  "RID": "001",
+  "RName": "台北捷運據點",
+  "PHOTO_URL": "https://photo.yannick.com.tw/...",
+  "Sort": 70
+}
+```
+
+只要這個變數結構不變，`scan.py` 就會自動跟上官方新增/停用的站點，**不需要更新 `stations.tsv`**。TSV 只在以下情況才會被讀：
+
+- `YANNICK_USE_LOCAL_STATIONS=1`
+- `YANNICK_OFFLINE_CACHE` 有設
+- 動態取得失敗（網路問題、官方頁面 HTML 結構變更導致正則對不上）
+
+若要手動更新 TSV 快照（離線情境用），仍可從同一頁面的第二個 `<select>` 撈：
 
 1. 在瀏覽器開該頁，DevTools console 跑：
 

@@ -40,10 +40,10 @@ zip -r dist/yannick-ytm-stats-skill.skill . \
 
 - **`SKILL.md`** — Claude skill 的入口檔，frontmatter 的 `description` 決定 skill 何時被觸發，body 是給 Claude 看的「怎麼用這個 skill」說明。改觸發行為時編這裡。
 - **`scripts/scan.py`** — 唯一的可執行腳本，純標準函式庫。流程：
-  1. `load_stations()` 讀 `stations.tsv`（86 站 master data：tid / branch_name / line / station_name）。
-  2. `scan_all()` 用 `ThreadPoolExecutor` 並行對每個 tid `POST` 一次官方 ajax endpoint，預設併發 6、單站 15s timeout、失敗指數退避重試 2 次。
+  1. `get_stations()` 先呼叫 `fetch_stations_live()` GET 官方頁面 `service2`，用正則抓出內嵌的 `Machines = [...]` JSON，解析成 86 站 master data（tid / branch_name / line / station_name）。**這是 primary path，每次跑都會抓最新站點清單。** 取得失敗（網路問題或官方頁面結構大改）會自動退回 `load_stations()` 讀 `stations.tsv` 快照，並在 stderr 印警告。
+  2. `scan_all()` 用 `ThreadPoolExecutor` 並行對每個 tid `POST` 一次官方 stock ajax endpoint，預設併發 6、單站 15s timeout、失敗指數退避重試 2 次。
   3. `build_report()` 把每站的 `Result.StockList[]` 依商品代碼（`commodityCode`）聚合成商品 → 出現站點清單，輸出固定版面的 Markdown：整體摘要 → 各據點分類 → 商品庫存排行 → 各商品出現站點 → 失敗站點。
-- **`scripts/stations.tsv`** — 86 站 master data 快照（2026-05 抓的）。當官方新增 / 停用站點時更新這個檔，更新方法見 `README.md` 「站點清單更新」段（在官方 `service2` 頁的 DevTools 跑一段 JS 撈第二個 `<select>` 的 options）。
+- **`scripts/stations.tsv`** — 86 站 master data 快照（2026-05 抓的），**現在只作為 fallback**，動態取得失敗時才會被讀。一般情況下不需要手動更新；但若想完全離線跑 / 官方頁面長期掛掉，可以更新它。更新方法見 `README.md` 「站點清單更新」段。
 
 底層 API 的完整規格、`Status.code` 對照、踩過的雷區（強制 POST、無 CORS header、必須 form body）寫在 `references/api.md`。**遇到 API 行為異常時先讀這個，再改 `scan.py`。**
 
