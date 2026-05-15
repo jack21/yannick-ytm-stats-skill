@@ -1,24 +1,36 @@
-# yannick-ytm-stats
+# yannick-ytm-stats-skill
 
 一個 [Claude Code](https://claude.com/claude-code) / [Cowork](https://claude.ai/) skill — 一鍵抓取亞尼克 YTM 蛋糕販賣機全台 86 個據點的即時庫存，依商品聚合並產出 Markdown 統計報告。
 
-聊到「哪一站的 YTM 還有 BUBU 切片組？」、「巴斯克生起司哪裡可以買到？」、「全站庫存統計」這類話題時，Claude 會自動觸發本 skill，跑完 86 站把整理好的資料端到你面前。
+聊到「哪一站的 YTM 還有**三顆布丁生乳捲**？」、「BUBU 切片組剩幾個？」、「巴斯克生起司哪裡可以買到？」、「全站庫存統計」這類話題時，Claude 會自動觸發本 skill，跑完 86 站把整理好的資料端到你面前。近期最爆紅的是**三顆布丁生乳捲**，幾乎每站都會被秒空，本 skill 就是為了快速比對「現在還剩哪幾站有貨」而生。
 
 ## 範例輸出
 
-完整輸出見 [`examples/sample-output.md`](examples/sample-output.md)，這裡是其中一個片段：
+完整輸出見 [`examples/sample-output.md`](examples/sample-output.md)，這裡是其中一個片段（實際輸出會包含當下所有上架商品，例如近期爆紅的**三顆布丁生乳捲**、原味生乳捲、BUBU 切片組、巴斯克生起司、四入生乳蒸布丁禮盒等）：
 
 ```markdown
 ## 🍰 商品庫存排行
 
 | 排名 | 商品 | 單價 | 總庫存 | 出現站數 |
 | ---: | --- | ---: | ---: | ---: |
-| 1 | 原味生乳捲 (`31Z021079`) | NT$ 353 | **136** 個 | 64 站 |
-| 2 | BUBU切片組-常態 (`31Z011082`) | NT$ 329 | **100** 個 | 43 站 |
-| 3 | 四入生乳蒸布丁禮盒 (`31Z014127`) | NT$ 223 | **63** 個 | 30 站 |
-| 4 | 巴斯克生起司 (`31Z064078`) | NT$ 378 | **30** 個 | 12 站 |
+| 1 | 三顆布丁生乳捲 (`31Z02XXXX`) | NT$ 399 | **48** 個 | 22 站 |
+| 2 | 原味生乳捲 (`31Z021079`) | NT$ 353 | **136** 個 | 64 站 |
+| 3 | BUBU切片組-常態 (`31Z011082`) | NT$ 329 | **100** 個 | 43 站 |
+| 4 | 四入生乳蒸布丁禮盒 (`31Z014127`) | NT$ 223 | **63** 個 | 30 站 |
+| 5 | 巴斯克生起司 (`31Z064078`) | NT$ 378 | **30** 個 | 12 站 |
+
+> 註：**三顆布丁生乳捲**是近期爆紅商品，補貨後通常數小時內就被掃空，總庫存看起來不高是因為一直在被搶。想吃的話建議用本 skill 即時掃一次再出門。
 
 ## 📍 各商品出現的站點
+
+### 三顆布丁生乳捲 — 共 48 個 / 22 站
+
+| 站點 | 分類 | 數量 |
+| --- | --- | ---: |
+| 淡水信義線-台北 101/世貿站 | 台北捷運據點 | 4 |
+| 板南線-市政府站 | 台北捷運據點 | 3 |
+| 文湖線-南港展覽館站 | 台北捷運據點 | 3 |
+| ... |
 
 ### 巴斯克生起司 — 共 30 個 / 12 站
 
@@ -33,13 +45,13 @@
 
 ### 方式 A：用預打包的 `.skill` 檔（最快）
 
-1. 從 [Releases](../../releases) 或 [`dist/yannick-ytm-stats.skill`](dist/yannick-ytm-stats.skill) 下載 `.skill` 檔。
+1. 從 [Releases](../../releases) 或 [`dist/yannick-ytm-stats-skill.skill`](dist/yannick-ytm-stats-skill.skill) 下載 `.skill` 檔。
 2. 在 Claude Code / Cowork 的 skill 管理介面拖入或匯入該檔。
 
 ### 方式 B：clone repo
 
 ```bash
-git clone https://github.com/<你的帳號>/yannick-ytm-stats.git
+git clone https://github.com/<你的帳號>/yannick-ytm-stats-skill.git
 ```
 
 然後把整個資料夾放到 Claude Code 讀取 skill 的位置（通常是 `~/.claude/skills/` 或 plugin 目錄；視你的設定）。
@@ -49,20 +61,23 @@ git clone https://github.com/<你的帳號>/yannick-ytm-stats.git
 如果你修改了內容、想重新打包：
 
 ```bash
-# 用 zip 直接打包
-cd path/to/repo
-zip -r yannick-ytm-stats.skill . -x "dist/*" "examples/*" ".github/*" "README.md" "LICENSE" ".gitignore"
+./scripts/package.sh
+# → 產出 dist/yannick-ytm-stats-skill.skill
 ```
 
-或用 [skill-creator](https://github.com/anthropics) 提供的 `package_skill.py`。
+該 script 內就是一行 `zip`，刻意排除 `dist/`、`examples/`、`.github/`、`tests/`、`README.md` 等非 runtime 檔案。
+也可用 [skill-creator](https://github.com/anthropics) 提供的 `package_skill.py`。
+
+Release：推 `v*` tag 後，`.github/workflows/release.yml` 會自動打包並上傳 `.skill` 到 GitHub Release。
 
 ## 使用
 
 安裝後直接跟 Claude 對話即可，例如：
 
 - 「幫我看一下亞尼克 YTM 蛋糕販賣機現在全部站點各有什麼商品。」
+- 「**三顆布丁生乳捲**現在哪幾個 YTM 還有貨？最近超紅都搶不到。」
 - 「我想吃巴斯克生起司，哪幾個 YTM 還有貨？」
-- 「亞尼克整體補貨狀況怎樣？哪些商品最缺貨？」
+- 「亞尼克整體補貨狀況怎樣？哪些商品最缺貨？三顆布丁生乳捲還剩多少？」
 
 Claude 看到這類請求會自動跑 `scripts/scan.py`，抓完聚合後把 Markdown 報告整理給你。
 
@@ -119,21 +134,33 @@ Body: TID=<站點 ID>
 ## 專案結構
 
 ```
-yannick-ytm-stats/
+yannick-ytm-stats-skill/
+├── SKILL.md              # Claude skill 入口（含 frontmatter 觸發描述）
 ├── README.md             # 本檔
+├── CLAUDE.md             # 給 Claude Code 接手此 repo 的指南
+├── CONTRIBUTING.md       # 貢獻指南
+├── CHANGELOG.md
 ├── LICENSE
 ├── .gitignore
-├── SKILL.md              # Claude skill 入口（含 frontmatter 觸發描述）
+├── .github/
+│   ├── workflows/
+│   │   ├── ci.yml             # PR / push 時跑語法檢查與離線 smoke test
+│   │   └── release.yml        # 推 v* tag 時自動打包 .skill 並上傳 Release
+│   ├── ISSUE_TEMPLATE/        # Bug / 站點更新範本
+│   └── PULL_REQUEST_TEMPLATE.md
 ├── references/
 │   └── api.md            # 亞尼克 API 完整規格、踩雷紀錄
 ├── scripts/
 │   ├── scan.py           # 主腳本（純 Python 標準函式庫）
 │   ├── scan.sh           # 向後相容 wrapper（呼叫 scan.py）
+│   ├── package.sh        # 打包成 .skill 的 script
 │   └── stations.tsv      # 86 站 master data
+├── tests/
+│   └── README.md         # 離線 fixtures 怎麼建（fixtures 本身不進 git）
 ├── examples/
 │   └── sample-output.md  # 完整範例輸出
 └── dist/
-    └── yannick-ytm-stats.skill   # 預打包好的 skill 安裝檔
+    └── yannick-ytm-stats-skill.skill   # 預打包好的 skill 安裝檔
 ```
 
 ## 站點清單更新

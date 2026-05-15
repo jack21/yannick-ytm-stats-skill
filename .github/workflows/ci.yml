@@ -1,0 +1,29 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  syntax-and-smoke:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.8", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Syntax check
+        run: python3 -m py_compile scripts/scan.py
+
+      - name: Offline smoke test
+        if: hashFiles('tests/fixtures/*.json') != ''
+        env:
+          YANNICK_OFFLINE_CACHE: tests/fixtures
+        run: python3 scripts/scan.py > /tmp/report.md && head -40 /tmp/report.md

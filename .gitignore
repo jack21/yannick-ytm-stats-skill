@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+.env
+
+# 編輯器
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# 測試 / 開發暫存
+.pytest_cache/
+.coverage
+htmlcov/
+*.log
+*.tmp
+mock-cache/
+*-workspace/
+tests/fixtures/*.json
+tests/fixtures/*.status
+
+# 打包輸出（如果要重打包，產出檔案不進版控）
+*.zip
+# 注意：dist/yannick-ytm-stats-skill.skill 是 release artifact，故意保留
+# 若想徹底排除，把下一行改成 dist/*.skill
+!dist/yannick-ytm-stats-skill.skill

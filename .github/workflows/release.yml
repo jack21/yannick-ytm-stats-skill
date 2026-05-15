@@ -1,0 +1,47 @@
+name: Release .skill bundle
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Smoke test (offline mode)
+        run: |
+          if [ -d tests/fixtures ]; then
+            YANNICK_OFFLINE_CACHE=tests/fixtures python3 scripts/scan.py > /dev/null
+          else
+            python3 -c "import scripts.scan" || python3 -c "import py_compile; py_compile.compile('scripts/scan.py', doraise=True)"
+          fi
+
+      - name: Package .skill
+        run: |
+          chmod +x scripts/package.sh
+          scripts/package.sh dist/yannick-ytm-stats-skill.skill
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: yannick-ytm-stats-skill
+          path: dist/yannick-ytm-stats-skill.skill
+
+      - name: Create GitHub release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/yannick-ytm-stats-skill.skill
+          generate_release_notes: true
