@@ -4,7 +4,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 這個 repo 是什麼
 
-這不是一個應用程式 repo，而是一個 **Claude Code / Cowork skill**：`yannick-ytm-stats-skill`。打包後的成品就是 `dist/yannick-ytm-stats-skill.skill`，使用者安裝後 Claude 會在聊到「亞尼克 / YTM / 蛋糕販賣機 / 某站庫存」時自動觸發 `scripts/scan.py`，把亞尼克全台 86 個 YTM 據點的即時庫存抓回來、聚合、輸出 Markdown 報告。
+這不是一個應用程式 repo，而是一個 **Claude Code / Cowork skill**。命名規則：
+
+- **Repo 名**：`yannick-ytm-stats-skill`（GitHub repo / clone 後的本機資料夾）
+- **Skill 名**：`yannick-ytm-stats`（`SKILL.md` frontmatter 的 `name:`、打包後的 `dist/yannick-ytm-stats.skill`、Claude 載入時識別用的名字）
+
+使用者安裝後 Claude 會在聊到「亞尼克 / YTM / 蛋糕販賣機 / 某站庫存」時自動觸發 `scripts/scan.py`，把亞尼克全台 86 個 YTM 據點的即時庫存抓回來、聚合、輸出 Markdown 報告。
 
 Skill 的觸發描述、注意事項、用法寫在 `SKILL.md` 的 frontmatter；那是 skill runtime 真正讀的入口檔。修改觸發行為時改 `SKILL.md`，不是改 `README.md`。
 
@@ -27,8 +32,8 @@ YANNICK_OFFLINE_CACHE=/path/to/mock python3 scripts/scan.py  # 跳過 HTTP、從
 重新打包 `.skill`（zip 即可、刻意排除非 runtime 的檔案）：
 
 ```bash
-cd /Users/jack/Workspace/yannick-ytm-skill
-zip -r dist/yannick-ytm-stats-skill.skill . \
+cd /Users/jack/Workspace/yannick-ytm-stats-skill
+zip -r dist/yannick-ytm-stats.skill . \
   -x "dist/*" "examples/*" ".github/*" "README.md" "LICENSE" ".gitignore" "CLAUDE.md"
 ```
 

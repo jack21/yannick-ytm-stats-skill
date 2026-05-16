@@ -81,7 +81,7 @@ def fetch_station(tid: str):
                 headers={
                     "Content-Type": "application/x-www-form-urlencoded",
                     "Accept": "application/json",
-                    "User-Agent": "yannick-ytm-stats-skill/1.0 (python urllib)",
+                    "User-Agent": "yannick-ytm-stats/1.0 (python urllib)",
                 },
                 method="POST",
             )
@@ -112,7 +112,7 @@ def fetch_stations_live():
     req = urllib.request.Request(
         STATIONS_PAGE_URL,
         headers={
-            "User-Agent": "yannick-ytm-stats-skill/1.0 (python urllib)",
+            "User-Agent": "yannick-ytm-stats/1.0 (python urllib)",
             "Accept": "text/html,application/xhtml+xml",
         },
     )

@@ -50,91 +50,168 @@
 
 挑你用的工具，照著做就好。
 
-### Claude Code
+<details>
+<summary><b>Claude Code</b>（CLI / 終端機）</summary>
 
 ```bash
-git clone https://github.com/jack21/yannick-ytm-stats-skill.git ~/.claude/skills/yannick-ytm-stats-skill
+git clone https://github.com/jack21/yannick-ytm-stats-skill.git ~/.claude/skills/yannick-ytm-stats
 ```
 
 開新對話、提到「亞尼克 YTM」就會自動觸發。
 
-### Claude Desktop（Mac / Windows）
+</details>
 
-1. 下載 [`dist/yannick-ytm-stats-skill.skill`](dist/yannick-ytm-stats-skill.skill)
-2. **Settings → Capabilities → Skills → Upload skill** 選那個檔
+<details>
+<summary><b>Claude Desktop</b>（Mac / Windows app）</summary>
 
-### Claude.ai / Cowork（網頁）
+1. 下載最新 [`yannick-ytm-stats.skill`](https://github.com/jack21/yannick-ytm-stats-skill/releases/download/latest/yannick-ytm-stats.skill)（或從 [Releases](https://github.com/jack21/yannick-ytm-stats-skill/releases) 挑版本）
+2. 打開 Claude Desktop → **Settings → Capabilities → Skills → Upload skill**
+3. 選剛下載的 `.skill` 檔，確認啟用
 
-同 Desktop：下載 `.skill` 後在 **Settings → Capabilities → Skills** 上傳。
+</details>
 
-### Codex CLI
+<details>
+<summary><b>Claude.ai / Cowork</b>（網頁版）</summary>
+
+1. 下載最新 [`yannick-ytm-stats.skill`](https://github.com/jack21/yannick-ytm-stats-skill/releases/download/latest/yannick-ytm-stats.skill)（或從 [Releases](https://github.com/jack21/yannick-ytm-stats-skill/releases) 挑版本）
+2. 登入 claude.ai → **Settings → Capabilities → Skills → Upload skill**
+3. 選剛下載的 `.skill` 檔，確認啟用
+
+</details>
+
+<details>
+<summary><b>Codex CLI</b>（OpenAI）</summary>
 
 ```bash
 git clone https://github.com/jack21/yannick-ytm-stats-skill.git ~/yannick-ytm-stats-skill
 mkdir -p ~/.codex && echo "@$HOME/yannick-ytm-stats-skill/AGENTS.md" >> ~/.codex/AGENTS.md
 ```
 
-### Gemini CLI
+Codex CLI 會自動讀 `~/.codex/AGENTS.md`，把 AGENTS.md 用 `@` 語法 import 進去即可。
+
+</details>
+
+<details>
+<summary><b>Gemini CLI</b>（Google）</summary>
 
 ```bash
 git clone https://github.com/jack21/yannick-ytm-stats-skill.git ~/yannick-ytm-stats-skill
 mkdir -p ~/.gemini && echo "@$HOME/yannick-ytm-stats-skill/AGENTS.md" >> ~/.gemini/GEMINI.md
 ```
 
-### Cursor
+Gemini CLI 會自動讀 `~/.gemini/GEMINI.md`，把 AGENTS.md 用 `@` 語法 import 進去即可。
 
-clone repo 後，把 `AGENTS.md` 的內容貼到 **Settings → Rules → User Rules**。
+</details>
 
-### Windsurf
+<details>
+<summary><b>Cursor</b></summary>
 
-clone repo 後，把 `AGENTS.md` 的內容貼到 **Settings → Cascade → Memories / Rules**。
+```bash
+git clone https://github.com/jack21/yannick-ytm-stats-skill.git ~/yannick-ytm-stats-skill
+```
 
-### Aider
+打開 Cursor → **Settings → Rules → User Rules**，把 `~/yannick-ytm-stats-skill/AGENTS.md` 的內容貼進去。
+
+</details>
+
+<details>
+<summary><b>Windsurf</b></summary>
+
+```bash
+git clone https://github.com/jack21/yannick-ytm-stats-skill.git ~/yannick-ytm-stats-skill
+```
+
+打開 Windsurf → **Settings → Cascade → Memories / Rules**，把 `~/yannick-ytm-stats-skill/AGENTS.md` 的內容貼進去。
+
+</details>
+
+<details>
+<summary><b>Aider</b></summary>
 
 ```bash
 git clone https://github.com/jack21/yannick-ytm-stats-skill.git ~/yannick-ytm-stats-skill
 aider --read ~/yannick-ytm-stats-skill/AGENTS.md
 ```
 
-或把它寫進 `~/.aider.conf.yml`：
+或把它寫進 `~/.aider.conf.yml` 永久生效：
 
 ```yaml
 read:
   - ~/yannick-ytm-stats-skill/AGENTS.md
 ```
 
-### Cline / Roo Code（VS Code）
+</details>
+
+<details>
+<summary><b>Cline / Roo Code</b>（VS Code 擴充）</summary>
 
 ```bash
 git clone https://github.com/jack21/yannick-ytm-stats-skill.git ~/yannick-ytm-stats-skill
 ln -sf ~/yannick-ytm-stats-skill/AGENTS.md ~/.clinerules
 ```
 
-### 其他工具 / 純命令列
+Cline 會自動讀 `~/.clinerules` 作為全域 rules。
 
-任何能跑 shell 的 AI 工具：clone repo，把 `AGENTS.md` 內容貼進 system prompt 即可。
+</details>
 
-不用任何 AI 工具，自己跑也行：
+<details>
+<summary><b>Continue.dev</b></summary>
+
+```bash
+git clone https://github.com/jack21/yannick-ytm-stats-skill.git ~/yannick-ytm-stats-skill
+```
+
+把 `~/yannick-ytm-stats-skill/AGENTS.md` 的內容貼進 `~/.continue/config.json` 的 `systemMessage` 欄位。
+
+</details>
+
+<details>
+<summary><b>Zed</b></summary>
+
+```bash
+git clone https://github.com/jack21/yannick-ytm-stats-skill.git ~/yannick-ytm-stats-skill
+```
+
+把 `~/yannick-ytm-stats-skill/AGENTS.md` 的內容貼進 `~/.config/zed/settings.json` 的 `assistant.default_model.system_prompt` 欄位。
+
+</details>
+
+<details>
+<summary><b>其他工具</b>（ChatGPT Desktop custom GPT、自製 MCP / LangChain agent…）</summary>
+
+```bash
+git clone https://github.com/jack21/yannick-ytm-stats-skill.git ~/yannick-ytm-stats-skill
+```
+
+把 `~/yannick-ytm-stats-skill/AGENTS.md` 的內容貼進該工具的 system prompt，確保工具有能力呼叫 shell 跑 `python3 ~/yannick-ytm-stats-skill/scripts/scan.py`。
+
+</details>
+
+<details>
+<summary><b>純命令列</b>（不透過任何 AI 工具）</summary>
 
 ```bash
 git clone https://github.com/jack21/yannick-ytm-stats-skill.git
 python3 yannick-ytm-stats-skill/scripts/scan.py
 ```
 
----
+只需 Python 3.8+，不用任何 `pip install`。
+
+</details>
 
 <details>
-<summary>自行打包成 <code>.skill</code>（給開發者）</summary>
+<summary><b>自行打包成 <code>.skill</code></b>（給開發者）</summary>
 
 修改內容後想重新打包：
 
 ```bash
-./scripts/package.sh   # 產出 dist/yannick-ytm-stats-skill.skill
+./scripts/package.sh   # 產出 dist/yannick-ytm-stats.skill
 ```
 
 該 script 內就是一行 `zip`，刻意排除 `dist/`、`examples/`、`.github/`、`tests/`、`README.md` 等非 runtime 檔案。
 
 Release：推 `v*` tag 後，`.github/workflows/release.yml` 會自動打包並上傳 `.skill` 到 GitHub Release。
+
 </details>
 
 ## 使用
@@ -228,7 +305,7 @@ yannick-ytm-stats-skill/
 ├── examples/
 │   └── sample-output.md  # 完整範例輸出
 └── dist/
-    └── yannick-ytm-stats-skill.skill   # 預打包好的 skill 安裝檔
+    └── yannick-ytm-stats.skill   # 預打包好的 skill 安裝檔
 ```
 
 ## 站點清單更新

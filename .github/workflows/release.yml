@@ -2,8 +2,8 @@ name: Release .skill bundle
 
 on:
   push:
-    tags:
-      - "v*"
+    branches: [main]
+    tags: ["v*"]
   workflow_dispatch:
 
 permissions:
@@ -20,28 +20,50 @@ jobs:
         with:
           python-version: "3.x"
 
-      - name: Smoke test (offline mode)
+      - name: Smoke test
         run: |
           if [ -d tests/fixtures ]; then
             YANNICK_OFFLINE_CACHE=tests/fixtures python3 scripts/scan.py > /dev/null
           else
-            python3 -c "import scripts.scan" || python3 -c "import py_compile; py_compile.compile('scripts/scan.py', doraise=True)"
+            python3 -c "import py_compile; py_compile.compile('scripts/scan.py', doraise=True)"
           fi
 
       - name: Package .skill
         run: |
           chmod +x scripts/package.sh
-          scripts/package.sh dist/yannick-ytm-stats-skill.skill
+          scripts/package.sh dist/yannick-ytm-stats.skill
+          ls -lh dist/yannick-ytm-stats.skill
 
-      - name: Upload artifact
+      - name: Upload workflow artifact
         uses: actions/upload-artifact@v4
         with:
-          name: yannick-ytm-stats-skill
-          path: dist/yannick-ytm-stats-skill.skill
+          name: yannick-ytm-stats
+          path: dist/yannick-ytm-stats.skill
 
-      - name: Create GitHub release
-        if: startsWith(github.ref, 'refs/tags/')
+      # 正式版：push tag v* 時建立帶版號的 release
+      - name: Create versioned release
+        if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/yannick-ytm-stats-skill.skill
+          files: dist/yannick-ytm-stats.skill
           generate_release_notes: true
+
+      # 滾動最新版：push 到 main 時，更新一個固定的 `latest` pre-release
+      # 使用者隨時可從 https://github.com/<owner>/<repo>/releases/latest 或
+      # https://github.com/<owner>/<repo>/releases/tag/latest 下載最新 .skill
+      - name: Update rolling "latest" release
+        if: github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          name: Latest build (auto-updated from main)
+          body: |
+            Rolling build automatically updated on every push to `main`.
+
+            - Commit: `${{ github.sha }}`
+            - Built at: ${{ github.event.head_commit.timestamp }}
+
+            想用穩定版請改下載 [versioned releases](../../releases)。
+          files: dist/yannick-ytm-stats.skill
+          prerelease: true
+          make_latest: false

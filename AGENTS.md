@@ -1,4 +1,4 @@
-# AGENTS.md — yannick-ytm-stats-skill
+# AGENTS.md — yannick-ytm-stats
 
 > 這個檔案是給非 Claude 系 AI 工具（Codex CLI、Gemini CLI、Cursor、Cline、Windsurf、Aider 等）讀的指令檔。
 > Claude 系（Claude Code / Claude Desktop / Cowork）請看 [`SKILL.md`](SKILL.md)；內容是一樣的，只是格式慣例不同。
