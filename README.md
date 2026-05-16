@@ -1,4 +1,4 @@
-# yannick-ytm-stats-skill
+# 亞尼克庫存查詢 SKILL
 
 一個 Agent Skill — 一鍵彙整亞尼克 YTM 蛋糕販賣機全台據點的即時庫存，依商品聚合並產出 Markdown 統計報告
 
