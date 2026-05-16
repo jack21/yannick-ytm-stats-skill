@@ -5,7 +5,7 @@ Yannick YTM 全站庫存掃描器（純 Python）
 流程：
 1. GET 官方頁面 service2，從內嵌的 `Machines` JSON 取得最新站點清單（即時 master data）
    - 取得失敗時自動退回讀內建 stations.tsv 快照
-2. 用 concurrent.futures.ThreadPoolExecutor 並行 POST 官方 API 抓各站庫存
+2. 用 concurrent.futures.ThreadPoolExecutor 並行查詢各站庫存
 3. 聚合並把 Markdown 報告印到 stdout
 
 依賴：
@@ -52,7 +52,7 @@ MACHINES_RE = re.compile(r"(?:var|let|const)\s+Machines\s*=\s*(\[.*?\]);", re.S)
 
 
 def fetch_station(tid: str):
-    """抓取單一站點。回 (tid, data_dict_or_None, error_str_or_None)。"""
+    """查詢單一站點。回 (tid, data_dict_or_None, error_str_or_None)。"""
     # Offline / mock 模式：從本機目錄讀
     if OFFLINE_CACHE:
         json_path = os.path.join(OFFLINE_CACHE, f"{tid}.json")
@@ -70,7 +70,7 @@ def fetch_station(tid: str):
         except Exception as exc:
             return tid, None, f"mock JSON 解析失敗：{exc}"
 
-    # 線上模式：POST 官方 API + 重試
+    # 線上模式：查詢官方頁面 + 重試
     body = urllib.parse.urlencode({"TID": tid}).encode("utf-8")
     last_err = None
     for attempt in range(RETRY_COUNT + 1):
@@ -184,7 +184,7 @@ def get_stations():
 
 
 def scan_all(stations):
-    """並行抓取所有站點，回 {tid: (data, error)}."""
+    """並行查詢所有站點，回 {tid: (data, error)}."""
     results = {}
     if OFFLINE_CACHE:
         # mock 模式不需要 thread pool；快得很
@@ -205,7 +205,7 @@ def build_report(stations, fetch_results, elapsed_sec, station_source=""):
     """整理 + 聚合 + 產出 Markdown 字串。"""
     station_results = []
     for s in stations:
-        data, err = fetch_results.get(s["tid"], (None, "未抓取"))
+        data, err = fetch_results.get(s["tid"], (None, "未查詢"))
         stocks = []
         if not err and data is not None:
             api_status = (data.get("Status") or {}).get("code", "")
@@ -275,7 +275,7 @@ def build_report(stations, fetch_results, elapsed_sec, station_source=""):
     out.append("")
     out.append(f"- **掃描時間：** {now_str} (台北時區)")
     out.append(f"- **耗時：** {elapsed_sec} 秒")
-    out.append(f"- **資料來源：** {API_URL} (官方 API)")
+    out.append(f"- **資料來源：** 亞尼克官網 YTM 查詢頁")
     if station_source:
         out.append(f"- **站點清單：** {station_source}")
     out.append("")
@@ -367,7 +367,6 @@ def main():
         return 1
 
     print(f"   站點來源：{station_source}", file=sys.stderr)
-    print(f"   API：{API_URL}", file=sys.stderr)
     if OFFLINE_CACHE:
         print(f"   🔌 OFFLINE MODE：{OFFLINE_CACHE}", file=sys.stderr)
     else:
@@ -378,7 +377,7 @@ def main():
     fetch_results = scan_all(stations)
     elapsed = int(time.time() - start)
 
-    print(f"✅ 抓取完成，耗時 {elapsed} 秒。聚合中…", file=sys.stderr)
+    print(f"✅ 查詢完成，耗時 {elapsed} 秒，聚合中…", file=sys.stderr)
     print("", file=sys.stderr)
 
     report = build_report(stations, fetch_results, elapsed, station_source)
