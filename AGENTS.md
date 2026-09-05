@@ -71,3 +71,11 @@ scan.py 印到 stdout 的 Markdown 結構固定為：
 
 - [`SKILL.md`](SKILL.md) — Claude 系工具的入口檔，內容與本檔等價
 - [`scripts/stations.tsv`](scripts/stations.tsv) — 站點 master data 快照（fallback 用）
+
+
+## 複製的專案補充
+處理本專案前，讀取 [yannick-ytm-stats-skill Claude 規範副本](/Users/jack/.codex/knowledge/project-instructions/yannick-ytm-stats-skill/claude-reference.md) 補充專案流程；若與本檔衝突，以本檔及使用者當次指示為準。
+
+
+## Codex 工具適配
+瀏覽器操作使用當前 Codex browser／computer-use 工具；原文的 Claude MCP 工具名稱只描述操作意圖，不能直接呼叫。提問依目前模式使用可用工具；Git 操作仍需當次明確授權。
